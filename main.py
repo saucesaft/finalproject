@@ -1,39 +1,19 @@
-rangingX = 0
-alreadyStarted = 0
-start = 0
-rangingY = 0
-intro = 0
 target_x = 0
 target_y = 0
 newx = 0
 newy = 0
+dart: game.LedSprite = None
+shouldLoopNext = 0
+roundPoint = 0
+"""
 
-def on_button_pressed_a():
-    global rangingX, alreadyStarted
-    rangingX += 1
-    if rangingX == 5:
-        rangingX = 0
-    basic.pause(200)
-    alreadyStarted = 1
-input.on_button_pressed(Button.A, on_button_pressed_a)
+formula to get the distance between the dart and the center of target
+
+"""
 
 def on_button_pressed_ab():
-    global start
-    start = 1
-input.on_button_pressed(Button.AB, on_button_pressed_ab)
-
-def on_button_pressed_b():
-    global rangingY, alreadyStarted
-    rangingY += 1
-    if rangingY == 5:
-        rangingY = 0
-    basic.pause(200)
-    alreadyStarted = 1
-input.on_button_pressed(Button.B, on_button_pressed_b)
-
-def on_gesture_shake():
-    global intro, target_x, target_y
-    intro = 1
+    global target_x, target_y
+    music.play_melody("E D G F B A C5 - ", 120)
     basic.show_leds("""
         # # # . .
         # . . # #
@@ -41,21 +21,23 @@ def on_gesture_shake():
         . . # . #
         # # # # #
         """)
+    basic.pause(500)
     while True:
         basic.clear_screen()
-        if start == 1:
-            for round2 in range(3):
-                target_x = randint(0, 4)
-                target_y = randint(0, 4)
-                basic.show_string("Ready?")
-                basic.clear_screen()
-                plotTarget(target_x, target_y)
-                basic.pause(2000)
-                basic.clear_screen()
-                gameStart(target_x, target_y)
-            basic.show_string("End")
-            break
-input.on_gesture(Gesture.SHAKE, on_gesture_shake)
+        for round2 in range(3):
+            basic.clear_screen()
+            target_x = randint(0, 4)
+            target_y = randint(0, 4)
+            basic.show_string("Ready?")
+            basic.clear_screen()
+            plotTarget(target_x, target_y)
+            plotTarget(target_x, target_y)
+            basic.pause(2000)
+            basic.clear_screen()
+            gameStart(target_x, target_y)
+        basic.show_string("End")
+        break
+input.on_button_pressed(Button.AB, on_button_pressed_ab)
 
 def plotTarget(x: number, y: number):
     global newx, newy
@@ -76,14 +58,39 @@ def plotTarget(x: number, y: number):
             newx = x
             newy = y
 def gameStart(currentX: number, currentY: number):
+    global dart, shouldLoopNext, roundPoint
+    dart = game.create_sprite(0, 0)
     while True:
-        if alreadyStarted == 0:
-            led.plot(0, 0)
-        else:
-            pass
-        led.plot(rangingX, rangingY)
+        if input.button_is_pressed(Button.B) and not (input.button_is_pressed(Button.A)):
+            dart.change(LedSpriteProperty.X, 1)
+            if shouldLoopNext == 1:
+                dart.set(LedSpriteProperty.X, 0)
+                shouldLoopNext = 0
+            if dart.get(LedSpriteProperty.X) == 4:
+                shouldLoopNext = 1
+            basic.pause(200)
+        elif input.button_is_pressed(Button.A) and not (input.button_is_pressed(Button.B)):
+            dart.change(LedSpriteProperty.Y, 1)
+            if shouldLoopNext == 1:
+                dart.set(LedSpriteProperty.Y, 0)
+                shouldLoopNext = 0
+            if dart.get(LedSpriteProperty.Y) == 4:
+                shouldLoopNext = 1
+            basic.pause(200)
         if input.button_is_pressed(Button.AB) or input.acceleration(Dimension.Z) > 1000:
             basic.clear_screen()
-            basic.show_number(rangingX)
-            basic.show_number(rangingY)
+            music.play_tone(262, music.beat(BeatFraction.HALF))
+            music.play_tone(247, music.beat(BeatFraction.HALF))
+            roundPoint = Math.sqrt((dart.get(LedSpriteProperty.X) - currentX) ** 2 + (dart.get(LedSpriteProperty.Y) - currentY) ** 2)
+            dart = None
+            if roundPoint == 0:
+                basic.show_string("5 points")
+            elif roundPoint >= 1 and roundPoint < 2:
+                basic.show_string("4 points")
+            elif roundPoint >= 2 and roundPoint < 3:
+                basic.show_string("3 points")
+            elif roundPoint >= 3 and roundPoint < 4:
+                basic.show_string("2 points")
+            elif roundPoint >= 4:
+                basic.show_string("1 point")
             break
